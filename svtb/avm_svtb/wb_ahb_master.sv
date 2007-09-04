@@ -3,7 +3,8 @@
 
 
 //File name             :       wb_ahb_master.sv
-//Date                  :        Aug, 2007
+//Designer		:	Ravi S Gupta
+//Date                  :       4 Sept, 2007
 //Description   	:       Master for initializing values during Reset State of Device
 //Revision              :       1.0
 
@@ -34,8 +35,6 @@ always @(posedge m_wb.clk_i)
 		m_wb.sel_i='bx;
 		m_wb.addr_i='bx;
 		m_wb.data_i='bx;
-		$display("Values of various signals at Reset State of the Device");
-		$display("%0b, %0b, %0b, %0d, %0d" ,m_wb.cyc_i , m_wb.stb_i , m_wb.sel_i,m_wb.addr_i,m_wb.data_i );
 		end
 
 //******************************************
@@ -50,15 +49,10 @@ task initial_setup;
 		m_wb.we_i='bx;
 		m_wb.addr_i='bx;
 		m_wb.data_i='bx;
-		$display("Initial signal setups values");
-		$display("%0b, %0b, %0b, %0b, %0d, %0d" ,m_wb.cyc_i , m_wb.stb_i , m_wb.sel_i,m_wb.we_i,m_wb.addr_i,m_wb.data_i);
-   	#20	m_wb.cyc_i='b1;
+	# 20	m_wb.cyc_i='b1;
 		m_wb.stb_i='b1;
 		m_wb.sel_i='b0;
 		m_wb.we_i='b1;//Write operation
-		$display("Initial signal setups values to start working");
-		$display("at %0d ,%0b, %0b, %0b, %0b",$time,m_wb.cyc_i , m_wb.stb_i , m_wb.sel_i,m_wb.we_i );
-
 	end
 endtask
 

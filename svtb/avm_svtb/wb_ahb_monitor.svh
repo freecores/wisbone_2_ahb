@@ -3,7 +3,8 @@
 
 
 //File name             :       wb_ahb_monitor.svh
-//Date                  :        Aug, 2007
+//Designer		:	Ravi S Gupta
+//Date                  :       4 Sept, 2007
 //Description           :       Monitor for WISHBONE_AHB Bridge
 //Revision              :       1.0
 
@@ -32,7 +33,6 @@ task rdwr;
 	forever 
 		begin
 		@(pin_if.monitor.we_i);
-		$display("Event on Read/Write");
 		flag1='b1;
 		end
 endtask
@@ -49,16 +49,18 @@ task main_run;
 	forever	
 	begin
 		@(posedge pin_if.monitor.clk_i);	
-		$display("At %0d,Values at ahb :%0d, %0d",$time,pin_if.monitor.haddr,pin_if.monitor.hwdata);
 		if(pin_if.monitor.stb_i)//No wait state
 		   begin
 		    if(pin_if.monitor.we_i) //write mode
 			begin
 				if(flag1) // first clock
 				begin	
-					m_pkt.adr1=pin_if.monitor.addr_i;
+					m_pkt.adr1=pin_if.monitor.addr_i;// Get WB addr and Data along with AHB addr
+					m_pkt.dat1=pin_if.monitor.data_i;
+					m_pkt.adr2=pin_if.monitor.haddr;
 					m_pkt.wr='b1;
 					m_pkt.stb=pin_if.monitor.stb_i;
+					m_pkt.ack=pin_if.monitor.ack_o;
 					m_pkt.flag1='b1;
 					// write packet to scoreboard
 					ap_sb.write(m_pkt);
@@ -72,6 +74,7 @@ task main_run;
 					m_pkt.dat2=pin_if.monitor.hwdata;
 					m_pkt.wr='b1;
 					m_pkt.stb=pin_if.monitor.stb_i;
+					m_pkt.ack=pin_if.monitor.ack_o;
 					m_pkt.flag1='b0;
 					m_pkt.flag2=flag2;
 					ap_sb.write(m_pkt);
@@ -81,9 +84,11 @@ task main_run;
 			begin
 				if(flag1) // first clock
 				begin
-					m_pkt.adr1=pin_if.monitor.addr_i;
+					m_pkt.adr1=pin_if.monitor.addr_i;//Get addr from both WB and AHB
+					m_pkt.adr2=pin_if.monitor.haddr;
 					m_pkt.wr='b0;
 					m_pkt.stb=pin_if.monitor.stb_i;
+					m_pkt.ack=pin_if.monitor.ack_o;
 					m_pkt.flag1='b1;
 					//write packet to scoreboard
 					ap_sb.write(m_pkt);	
@@ -92,11 +97,12 @@ task main_run;
 				else
 				begin
 					m_pkt.adr1=pin_if.monitor.addr_i;
-					m_pkt.dat1=pin_if.monitor.data_i;
+					m_pkt.dat1=pin_if.monitor.data_o;
 					m_pkt.adr2=pin_if.monitor.haddr;
 					m_pkt.dat2=pin_if.monitor.hrdata;
 					m_pkt.wr='b0;
 					m_pkt.stb=pin_if.monitor.stb_i;
+					m_pkt.ack=pin_if.monitor.ack_o;
 					m_pkt.flag1='b0;
 					m_pkt.flag2=flag2;
 					// write packet to scoreboard
@@ -116,6 +122,7 @@ task main_run;
 					m_pkt.dat2=pin_if.monitor.hwdata;
 					m_pkt.wr='b1;
 					m_pkt.stb=pin_if.monitor.stb_i;
+					m_pkt.ack=pin_if.monitor.ack_o;
 					m_pkt.flag2='b1;
 					ap_sb.write(m_pkt);
 					flag2='b0;
@@ -128,6 +135,7 @@ task main_run;
 					m_pkt.dat2=pin_if.monitor.hwdata;
 					m_pkt.wr='b1;
 					m_pkt.stb=pin_if.monitor.stb_i;
+					m_pkt.ack=pin_if.monitor.ack_o;
 					m_pkt.flag2='b0;
 					ap_sb.write(m_pkt);
 				end
@@ -142,6 +150,7 @@ task main_run;
 					m_pkt.dat2=pin_if.monitor.hrdata;
 					m_pkt.wr='b0;
 					m_pkt.stb=pin_if.monitor.stb_i;
+					m_pkt.ack=pin_if.monitor.ack_o;
 					m_pkt.flag2='b1;
 					ap_sb.write(m_pkt);
 					flag2='b0;
@@ -154,6 +163,7 @@ task main_run;
 					m_pkt.dat2=pin_if.monitor.hrdata;
 					m_pkt.wr='b0;
 					m_pkt.stb=pin_if.monitor.stb_i;
+					m_pkt.ack=pin_if.monitor.ack_o;
 					m_pkt.flag2='b0;
 					ap_sb.write(m_pkt);
 				end

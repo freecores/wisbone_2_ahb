@@ -1,3 +1,15 @@
+//******************************************************************************************************
+// Copyright (c) 2007 TooMuch Semiconductor Solutions Pvt Ltd.
+
+
+//File name             :       wb_ahb_env.svh
+//Designer		:	Ravi S Gupta
+//Date                  :       4 Sept, 2007
+//Description   	:       Environment for WISHBONE_AHB Bridge
+//Revision              :       1.0
+
+//******************************************************************************************************
+
 // env class
 import avm_pkg::*;
 import wb_ahb_pkg::*;
@@ -15,7 +27,7 @@ wb_ahb_responder   responder;
 // analysis components
 wb_ahb_monitor     monitor;
 wb_ahb_coverage	   coverage;
-//wb_ahb_scoreboard  scoreboard;
+wb_ahb_scoreboard  scoreboard;
 
 tlm_fifo #(wb_req_pkt) fifo;
 
@@ -27,7 +39,7 @@ avm_analysis_port#(monitor_pkt) e_ap;
 		responder  =new("responder",this);
 		monitor	   =new("monitor",this);
 		coverage   =new("coverage", this);
-//		scoreboard =new("scoreboard", this);
+		scoreboard =new("scoreboard", this);
 		fifo       =new("fifo",this);
 		e_ap       =new("e_ap",this);
 		pin_if        =pin;
@@ -38,7 +50,7 @@ avm_analysis_port#(monitor_pkt) e_ap;
 	function void connect();
 		stim_gen.initiator_port.connect(fifo.blocking_put_export);
 		driver.request_port.connect(fifo.nonblocking_get_export);
-		//monitor.ap_sb.register(scoreboard.ap_if);	
+		monitor.ap_sb.register(scoreboard.ap_if);	
 		monitor.ap_sb.register(coverage.ap_if);	
 	endfunction
 
@@ -52,7 +64,7 @@ avm_analysis_port#(monitor_pkt) e_ap;
 		fork
 			stim_gen.stimulus();
 			responder.wait_state_by_slave();
-			#525;
+			#700;
 		join
 	endtask
 	

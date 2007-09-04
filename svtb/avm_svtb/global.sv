@@ -3,7 +3,8 @@
 
 
 //File name             :       global.sv
-//Date                  :        Aug, 2007
+//Designer		:	Ravi S Gupta
+//Date                  :       4 Sept, 2007
 //Description   	:       Gloabl Declaration for WISHBONE_AHB Bridge used within Driver, Stimulus Generator and Monitor
 //Revision              :       1.0
 
