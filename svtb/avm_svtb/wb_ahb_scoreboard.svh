@@ -3,7 +3,8 @@
 
 
 //File name             :       wb_ahb_scoreboard.svh
-//Date                  :        Aug, 2007
+//Designer		:	Ravi S Gupta
+//Date                  :       4 Sept, 2007
 //Description           :       Stimulus Generation for WISHBONE_AHB Bridge
 //Revision              :       1.0
 
@@ -18,10 +19,12 @@ class wb_ahb_scoreboard extends avm_threaded_component;
 analysis_fifo#(monitor_pkt) ap_fifo; // analysis port fifo 
 analysis_if#(monitor_pkt) ap_if; // analysis port  interface
 // local variables 
-logic [AWIDTH-1:0]adr1; 
-logic [AWIDTH-1:0]adr2; 
-logic [DWIDTH-1:0]dat1; 
-logic [DWIDTH-1:0]dat2; 
+
+logic [AWIDTH-1:0]adr1; //WB ADDR
+logic [DWIDTH-1:0]dat1; //WB DATA
+logic [AWIDTH-1:0]adr2; //AHB ADDR
+logic [DWIDTH-1:0]dat2; //WB DATA
+
 // monitor packet
 monitor_pkt m_pkt;	
 
@@ -34,63 +37,69 @@ virtual ahb_wb_if pin_if;
 		pin_if =null;
 	endfunction
 
-// connecting analysis fifo  to the analysis interface
+// connecting analysis fifo to the analysis interface
 function void export_connections();
 	ap_if = ap_fifo.analysis_export;
 endfunction 
 
 task run;
-	forever	
+forever	
 	begin
 	ap_fifo.get(m_pkt);
-		if(m_pkt.stb)  //No wait state
+		if(m_pkt.stb && m_pkt.ack)  //No wait state
 			if(m_pkt.wr) //write mode
-				if(m_pkt.flag1) // first clock no comaprison only sampling the values
+				if(m_pkt.flag1) // first clock comparison only between addresses
+				begin
 					adr1=m_pkt.adr1;
-				else
+					dat1=m_pkt.dat1;
+					adr2=m_pkt.adr2;
 					if(m_pkt.flag2) // first clock after after wait state 
 					begin
-						if((( adr1==m_pkt.adr1) && (dat1==m_pkt.dat1)  && (adr2==m_pkt.adr2)  && (dat2==m_pkt.dat2)) || (( adr1 === m_pkt.adr2 ) && (m_pkt.dat1 === m_pkt.dat2)));
+						if((( adr1==m_pkt.adr1) && (dat1==m_pkt.dat1)  && (adr2==m_pkt.adr2)  && (dat2==m_pkt.dat2))|| (( m_pkt.adr1 === m_pkt.adr2 ) && (m_pkt.dat1 === dat2)));
+						
 							//avm_report_message("Scoreboard: Write Passed","after wait state");
 						else
 							avm_report_warning("Scoreboard: Error in write after wait state",display_pkt(m_pkt));
-					adr1=m_pkt.adr1; // Holding the previous address 
+						adr1=m_pkt.adr1; // Holding the previous WB address 
+						dat1=m_pkt.dat1; // Holding the previous WB data
+						adr2=m_pkt.adr2; // Holding the previous AHB Addr
+							
 					end
 					else
-			
-					begin
-						if(( adr1 === m_pkt.adr2 ) && (m_pkt.dat1 === m_pkt.dat2));
-							//avm_report_message("Scoreboard: Write Passed","without wait state");
-						else	
 						begin
+						if(( m_pkt.adr1 === m_pkt.adr2 ) && (m_pkt.dat1 === dat2));
+							//avm_report_message("Scoreboard: Write Passed","without wait state");
+						else
 							avm_report_warning("Scoreboard: Error in write without wait state",display_pkt(m_pkt));
 						end
-					adr1=m_pkt.adr1;
-					end						
-			else// read mode	
-				if(m_pkt.flag1) // first clock no comaprison only sampling the values
-					adr1=m_pkt.adr1;
-				else
+					end
+			else //READ Mode
+				if(m_pkt.flag1) // first clock comaprison between addresses
+				begin
+					adr1=m_pkt.adr1;// Holding the previous WB address
+					adr2=m_pkt.adr2;// Holding the previous AHB Addr
 					if(m_pkt.flag2) // first clock after after wait state
 					begin
-						if((( adr1==m_pkt.adr1) && (dat1==m_pkt.dat1)  && (adr2==m_pkt.adr2)  && (dat2==m_pkt.dat2)) || (( adr1 === m_pkt.adr2 ) && (m_pkt.dat1 === m_pkt.dat2)));
+						if((( adr1==m_pkt.adr1) && (dat1==m_pkt.dat1)  && (adr2==m_pkt.adr2)  && (dat2==m_pkt.dat2))|| (( adr1 === m_pkt.adr2 ) && (m_pkt.dat1 === m_pkt.dat2)));
 							//avm_report_message("Scoreboard: Read Passed","after wait state");
 						else
+						
 							avm_report_warning("Scoreboard: Error in read after wait state",display_pkt(m_pkt));
-					adr1=m_pkt.adr1;
+						adr1=m_pkt.adr1;
+						adr2=m_pkt.adr2;
 					end
-
-					else	
+					else
 					begin
 						if(( adr1 === m_pkt.adr2 ) && (m_pkt.dat1 === m_pkt.dat2)); // comparing unknown values too
 							//avm_report_message("Scoreboard: Read Passed","without wait state");
 						else
-						begin
 							avm_report_warning("Scoreboard: Error in read without wait state",display_pkt(m_pkt));
-						end
-					adr1=m_pkt.adr1;	
+						adr1=m_pkt.adr1;
+						adr2=m_pkt.adr2;
 					end
-		else // wait state by slave or master
+				end
+		else // wait state by slave or master		
+		begin
 			if(m_pkt.flag2) // latch the value
 			begin
 				adr1=m_pkt.adr1;
@@ -99,18 +108,19 @@ task run;
 				dat2=m_pkt.dat2;
 			end
 			else
+			begin
 				if(( adr1==m_pkt.adr1) && (dat1==m_pkt.dat1)  && (adr2==m_pkt.adr2)  && (dat2==m_pkt.dat2));
-					//$display("Passed wait");
 					//avm_report_message("Scoreboard: Passed","with wait state");
 				else
-					begin
 					avm_report_warning("Scoreboard: Error in with wait state",display_pkt(m_pkt));
-					end
+			end
+		end
 						
 	end		
 endtask
 
-// function to display values at any instant : 
+
+// function to display values at any instant 
 function string display_pkt(input monitor_pkt m);
 	string s;
 		$sformat(s,"current_adr1=%0d,adr1=%0d,adr2=%0d,dat1=%0d,dat2=%0d,wr=%0b,stb=%0b,f1=%b,f2=%b",adr1,m.adr1,m.adr2,m.dat1,m.dat2,m.wr,m.stb,m.flag1,m.flag2);

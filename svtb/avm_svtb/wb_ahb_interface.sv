@@ -3,7 +3,8 @@
 
 
 //File name             :       wb_ahb_interface.sv
-//Date                  :        Aug, 2007
+//Designer		:	Ravi S Gupta
+//Date                  :       4 Sept, 2007
 //Description   	:       Interface for WISHBONE_AHB Bridge
 //Revision              :       1.0
 

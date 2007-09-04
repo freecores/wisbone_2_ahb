@@ -3,7 +3,8 @@
 
 
 //File name             :       wb_ahb_responder.svh
-//Date                  :        Aug, 2007
+//Designer		:	Ravi S Gupta
+//Date                  :       4 Sept, 2007
 //Description   	:       Response from AHB to the Inputs from Wishbone
 //Revision              :       1.0
 
@@ -16,6 +17,13 @@ import global::*;
 class wb_ahb_responder extends avm_threaded_component;
 
 int cnt;
+// local memory in AHB slave model
+logic [DWIDTH-1 : 0] ahb_mem [AWIDTH-1 : 0]; 
+
+logic [AWIDTH-1:0] haddr_temp;
+logic [DWIDTH-1 :0] hrdata_temp;
+logic hwrite_temp;
+
 virtual wb_ahb_if pin_if;
 
 	function new(string name ,avm_named_component parent);
@@ -23,157 +31,143 @@ virtual wb_ahb_if pin_if;
 		pin_if   =null;
 	endfunction
 
-task run;
-	// local memory in AHB slave model
-	logic [DWIDTH-1 : 0] ahb_mem [AWIDTH-1 : 0]; 
-	logic [AWIDTH-1:0] haddr_temp;
-	logic [DWIDTH-1 :0] hrdata_temp;
-	logic hwrite_temp;
-
-	forever		
-		begin 
-			@(pin_if.slave_ba.haddr or pin_if.slave_ba.hwrite);	
-			
+// task to sample address
+task samp_addr;
+	forever 
+		begin
+		@(posedge pin_if.master_wb.clk_i);
 				if(pin_if.master_wb.rst_i)	
 					begin
 					pin_if.slave_ba.hready='b0;
 					pin_if.slave_ba.hwdata='bx;
 					pin_if.slave_ba.hresp='b00;
+
 					end
-				else
-					@(posedge pin_if.master_wb.clk_i)
-					if(pin_if.slave_ba.hready)
+				else if(!pin_if.slave_ba.hwrite)
 					begin
-					haddr_temp = #2 pin_if.slave_ba.haddr;
-					hwrite_temp=#2 pin_if.slave_ba.hwrite;
-					$display("@ %0d,temp addr=%0d",$time,haddr_temp);
-					if(hwrite_temp)
-						begin
-						ahb_mem[haddr_temp] = #2 pin_if.slave_ba.hwdata;// data stored in ahb slave
-						$display("@ %0d,temp data=%0d",$time,pin_if.slave_ba.hwdata);
-						end
-					else if (!pin_if.slave_ba.hwrite) //Read Operation
-						begin
-						pin_if.slave_ba.hrdata = #2 ahb_mem[pin_if.slave_ba.haddr];
-						end
+					pin_if.slave_ba.hrdata= #2 pin_if.slave_ba.haddr+1;
 					end
 		end
 endtask
-		
+
+	
+task response;
+	forever
+	begin
+	@(posedge pin_if.master_wb.clk_i);
+	end
+endtask	
 
 //*****************************************
 //Write operations with no wait states
 //*****************************************
 task wait_state_by_slave;
 	pin_if.slave_ba.hready='b1;
-	$display("\n@%0d Block Write operations \n",$time);
 		do
 			begin
 			@(posedge pin_if.master_wb.clk_i);
 			cnt++;
 			end
-		while (cnt <= 6);//Write operations with no wait states for 7 clk cycles
+		while (cnt <= 9);//Write operations with no wait states for 10 clk cycles
 //************************************************
 //Write operations with wait states from AHB Slave
 //************************************************
 	#2 pin_if.slave_ba.hready='b0; 
-	$display("\n@%0d Write operations with wait states from AHB Slave \n",$time);
 	cnt=0;
 		do
 			begin
 			@(posedge pin_if.master_wb.clk_i);
 			++cnt;
 			end
-		while (cnt <= 1);// 2 clock cycle asserted AHB Master is in Wait State
+		while (cnt <= 4);// 5 clock cycle asserted AHB Master is in Wait State
 //*****************************************
 //Write operations with no wait states
 //*****************************************
 	#2 pin_if.slave_ba.hready='b1;
-	$display("\n@%0d Block Write operations \n",$time);
 	cnt=0;
 		do
 			begin
 			@(posedge pin_if.master_wb.clk_i);
 			cnt++;
 			end
-		while (cnt <= 3);//Write operations with no wait states for 4 clk cycles
+		while (cnt <= 4);//Write operations with no wait states for 5 clk cycles
 //***********************************************
 //Write operations with wait states from WB Master
 //***********************************************
 	 #2 pin_if.slave_ba.hready='b1; 
-	$display("\n@%0d Write operations with wait states from WB Master \n",$time);
 	cnt=0;
 		do
 			begin
 			@(posedge pin_if.master_wb.clk_i);
 			++cnt;
 			end
-		while (cnt <= 1);// 2 clock cycle deasserted WB Master is in Wait State
+		while (cnt <= 4);// 5 clock cycle deasserted WB Master is in Wait State
 //*****************************************
 //Write operations with no wait states
 //*****************************************
 	#2 pin_if.slave_ba.hready='b1;
-	$display("\n@%0d Block Write operations \n",$time);
 	cnt=0;
 		do
 			begin
 			@(posedge pin_if.master_wb.clk_i);
 			cnt++;
 			end
-		while (cnt <= 3);//Write operations with no wait states for 4 clk cycles
+		while (cnt <= 4);//Write operations with no wait states for 5 clk cycles
 
 //*************************************
 //Read operations without wait states
 //*************************************
 	#2 pin_if.slave_ba.hready='b1; 
-	$display("\n@%0d Block Read operations \n",$time);
 	cnt=0;
 		do
 			begin
 				@(posedge pin_if.master_wb.clk_i);
 			cnt++;
 			end
-	while (cnt <= 5);// Read operations with no wait states for 6 clk cycles
+	while (cnt <= 9);// Read operations with no wait states for 10 clk cycles
 
 //**********************************************
 //Read operations with wait states from AHB Slave
 //**********************************************
-	#2 pin_if.slave_ba.hready='b0; // 25 clock cycle asserted AHB Master is in Wait State
-	$display("\n@%0d Read operations with wait states from AHB Slave\n",$time);
+	#2 pin_if.slave_ba.hready='b0; 
 	cnt=0;
 		do
 			begin
 				@(posedge pin_if.master_wb.clk_i);
 			++cnt;
 			end
-	while (cnt <= 1);// 2 clock cycle asserted AHB Master is in Wait State
+	while (cnt <= 9);// 10 clock cycle asserted AHB Master is in Wait State
 
 //*************************************
 //Read operations without wait states
 //*************************************
 	#2 pin_if.slave_ba.hready='b1; 
-	$display("\n@%0d Block Read operations \n",$time);
 	cnt=0;
 		do
 			begin
 				@(posedge pin_if.master_wb.clk_i);
 			cnt++;
 			end
-	while (cnt <= 3);// Read operations with no wait states for 4 clk cycles
+	while (cnt <= 9);// Read operations with no wait states for 10 clk cycles
 //**********************************************
 //Read operations with wait states from WB Master
 //**********************************************
-	#2 pin_if.slave_ba.hready='b1; // 5 clock cycle  deasserted WB Master in in Wait state
-	$display("\n@%0d Read operations with wait states from WB Master\n",$time);
+	#2 pin_if.slave_ba.hready='b1; 
 	cnt=0;
 		do
 			begin
 				@(posedge pin_if.master_wb.clk_i);
 			++cnt;
 			end
-		while (cnt <= 4);// 5 clock cycle  asserted WB Master in in Wait state
+		while (cnt <= 9);// 10 clock cycle  asserted WB Master in in Wait state
 
 endtask 
-
+// run all task
+task run;
+	fork
+	samp_addr;
+	response;
+	join
+endtask 
 
 endclass

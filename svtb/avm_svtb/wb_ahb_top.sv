@@ -1,3 +1,16 @@
+//******************************************************************************************************
+// Copyright (c) 2007 TooMuch Semiconductor Solutions Pvt Ltd.
+
+
+//File name             :       wb_ahb_top.svh
+//Designer		:	Ravi S Gupta
+//Date                  :       4 Sept, 2007
+//Description           :       Top for WISHBONE_AHB Bridge
+//Revision              :       1.0
+
+//******************************************************************************************************
+
+
 // top module
 `include "../../src/ahbmas_wbslv_top.v"
 
@@ -40,15 +53,11 @@ logic reset ='b0;
 initial 
 	begin
 		env = new(inf1);
-	        $display ("\n@%0d:Testcase begin",$time); 
-		#2  reset='b1;
-		#23 reset ='b0; 
-	        $display ("\n@%0d:Reset done",$time); 
-	 	TB_M.initial_setup();
-	        $display ("\n@%0d:Initial setup done",$time); 
-		env.do_test();
-	        $display ("\n@%0d do_test over",$time); 
-		$finish;	
+	        #2  reset='b1;
+		#23 reset ='b0;
+	        TB_M.initial_setup();
+	        env.do_test();
+	        $finish;	
 		
 	end  
 
